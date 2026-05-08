@@ -593,57 +593,44 @@ function disconnect() {
     document.getElementById("connectbutton").innerHTML = '连接';
 }
 
-// ==================== 蓝牙连接相关 ====================
-async function filterConnect() {
-    await preConnect(true, true);
-}
-
-async function preConnect(useFilter = false, forceNew = false) {
-    if (gattServer && gattServer.connected) {
-        if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
-        if (!forceNew) return;
-        await sleep(300);
+async function preConnect() {
+  if (gattServer != null && gattServer.connected) {
+    if (bleDevice != null && bleDevice.gatt.connected) {
+      bleDevice.gatt.disconnect();
     }
+  }
+  else {
     resetVariables();
-
     try {
-        const filterInput = document.getElementById('blenamefilter');
-        const filterValue = filterInput?.value.trim();
-        if (filterInput) filterInput.blur();
-
-        const options = { optionalServices: ['62750001-d828-918d-fb46-b6c11c675aec'] };
-        if (useFilter && filterValue && filterValue.length > 0) {
-            const prefix = filterValue.toUpperCase();
-            options.filters = [{ namePrefix: 'NRF_EPD_' + prefix }, { namePrefix: 'EPD_' + prefix }];
-            addLog(`按名称过滤: NRF_EPD_${prefix} 或 EPD_${prefix}`);
-        } else {
-            options.acceptAllDevices = true;
-        }
-
-        bleDevice = await navigator.bluetooth.requestDevice(options);
+      bleDevice = await navigator.bluetooth.requestDevice({
+        optionalServices: ['62750001-d828-918d-fb46-b6c11c675aec'],
+        // 核心修改：过滤 NRF 开头的设备
+        filters: [
+          { namePrefix: 'NRF' },
+          { namePrefix: 'nrf' } // 可选：兼容小写开头
+        ]
+      });
     } catch (e) {
-        if (e.name === 'NotFoundError' || (e.message && e.message.includes('User cancelled'))) {
-            addLog("已取消设备选择。");
-        } else {
-            console.error(e);
-            if (e.message) addLog("requestDevice: " + e.message);
-            addLog("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！建议使用以下浏览器：");
-            addLog("• 电脑: Chrome/Edge");
-            addLog("• Android: Chrome/Edge");
-            addLog("• iOS: Bluefy 浏览器");
-        }
-        return;
+      console.error(e);
+      if (e.message) addLog("requestDevice: " + e.message);
+      addLog("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！建议使用以下浏览器：");
+      addLog("• 电脑: Chrome/Edge");
+      addLog("• Android: Chrome/Edge");
+      addLog("• iOS: Bluefy 浏览器");
+      return;
     }
 
-    bleDevice.addEventListener('gattserverdisconnected', disconnect);
-    setTimeout(async () => { await connect(); }, 300);
+    await bleDevice.addEventListener('gattserverdisconnected', disconnect);
+    setTimeout(async function () { await connect(); }, 300);
+  }
 }
 
 async function reConnect() {
-    if (bleDevice && bleDevice.gatt.connected) bleDevice.gatt.disconnect();
-    resetVariables();
-    addLog("正在重连");
-    setTimeout(async () => { await connect(); }, 300);
+  if (bleDevice != null && bleDevice.gatt.connected)
+    bleDevice.gatt.disconnect();
+  resetVariables();
+  addLog("正在重连");
+  setTimeout(async function () { await connect(); }, 300);
 }
 
 function handleNotify(value, idx) {
