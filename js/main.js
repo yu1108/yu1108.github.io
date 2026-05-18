@@ -34,6 +34,7 @@ const canvasSizes = [
   { name: '3.5_384_184', width: 384, height: 184 },
   { name: '3.7_416_240', width: 416, height: 240 },
   { name: '3.97_800_480', width: 800, height: 480 },
+  { name: '3.98_768_552', width: 768, height: 552 },
   { name: '4.2_400_300', width: 400, height: 300 },
   { name: '5.79_792_272', width: 792, height: 272 },
   { name: '5.83_600_448', width: 600, height: 448 },
