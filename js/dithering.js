@@ -25,12 +25,48 @@ const threeColorPalette = [
   { name: "红色", r: 255, g: 0, b: 0, value: 0x02 }
 ];
 
+const blackWhitePalette = [
+  { name: "黑色", r: 0, g: 0, b: 0, value: 0x00 },
+  { name: "白色", r: 255, g: 255, b: 255, value: 0x01 }
+];
+
+const paletteLabCache = new Map();
+
+function clampChannel(value) {
+  return Math.min(255, Math.max(0, Math.round(value)));
+}
+
+function clampDitherError(value) {
+  return Math.max(-96, Math.min(96, value));
+}
+
+function normalizeDitherStrength(strength) {
+  const raw = Math.max(0, Math.min(5, Number(strength) || 0));
+  if (raw <= 1) return raw;
+  return 1 + 0.45 * (1 - Math.exp(-(raw - 1) / 1.8));
+}
+
 function adjustContrast(imageData, factor) {
   const data = imageData.data;
   for (let i = 0; i < data.length; i += 4) {
-    data[i] = Math.min(255, Math.max(0, (data[i] - 128) * factor + 128));
-    data[i + 1] = Math.min(255, Math.max(0, (data[i + 1] - 128) * factor + 128));
-    data[i + 2] = Math.min(255, Math.max(0, (data[i + 2] - 128) * factor + 128));
+    data[i] = clampChannel((data[i] - 128) * factor + 128);
+    data[i + 1] = clampChannel((data[i + 1] - 128) * factor + 128);
+    data[i + 2] = clampChannel((data[i + 2] - 128) * factor + 128);
+  }
+  return imageData;
+}
+
+function adjustBrightnessSaturation(imageData, brightness, saturation) {
+  const data = imageData.data;
+  for (let i = 0; i < data.length; i += 4) {
+    const r = data[i];
+    const g = data[i + 1];
+    const b = data[i + 2];
+    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
+
+    data[i] = clampChannel(luminance + (r - luminance) * saturation + brightness);
+    data[i + 1] = clampChannel(luminance + (g - luminance) * saturation + brightness);
+    data[i + 2] = clampChannel(luminance + (b - luminance) * saturation + brightness);
   }
   return imageData;
 }
@@ -71,19 +107,32 @@ function labDistance(lab1, lab2) {
   const dl = lab1.l - lab2.l;
   const da = lab1.a - lab2.a;
   const db = lab1.b - lab2.b;
-  return Math.sqrt(0.2 * dl * dl + 3 * da * da + 3 * db * db);
+  return Math.sqrt(0.35 * dl * dl + 2.2 * da * da + 2.2 * db * db);
+}
+
+function getPalette(mode) {
+  if (mode === 'fourColor') {
+    return fourColorPalette;
+  } else if (mode === 'threeColor') {
+    return threeColorPalette;
+  } else if (mode === 'blackWhiteColor') {
+    return blackWhitePalette;
+  }
+  return rgbPalette;
+}
+
+function getPaletteLab(mode) {
+  if (!paletteLabCache.has(mode)) {
+    paletteLabCache.set(mode, getPalette(mode).map(color => ({ color, lab: rgbToLab(color.r, color.g, color.b) })));
+  }
+  return paletteLabCache.get(mode);
 }
 
 function findClosestColor(r, g, b, mode) {
-  let palette;
-
-  if (mode === 'fourColor') {
-    palette = fourColorPalette;
-  } else if (mode === 'threeColor') {
-    palette = threeColorPalette;
-  } else {
-    palette = rgbPalette;
-  }
+  r = clampChannel(r);
+  g = clampChannel(g);
+  b = clampChannel(b);
+  const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
 
   // 蓝色特殊情况（仅限非三色、四色模式）
   if (mode !== 'fourColor' && mode !== 'threeColor' && r < 50 && g < 150 && b > 100) {
@@ -92,29 +141,41 @@ function findClosestColor(r, g, b, mode) {
 
   // 三色模式下优先检测红色
   if (mode === 'threeColor') {
-    // 如果红色通道显著高于绿色和蓝色，且强度足够
-    if (r > 120 && r > g * 1.5 && r > b * 1.5) {
+    if (r > 125 && r > g * 1.28 && r > b * 1.28 && r - Math.max(g, b) > 32) {
       return threeColorPalette[2]; // 红色
     }
-    // 否则根据亮度选择黑或白
-    const luminance = 0.299 * r + 0.587 * g + 0.114 * b;
     return luminance < 128 ? threeColorPalette[0] : threeColorPalette[1]; // 黑色或白色
+  }
+
+  if (mode === 'fourColor') {
+    const chroma = Math.max(r, g, b) - Math.min(r, g, b);
+    if (r > 135 && r > g * 1.2 && r > b * 1.35 && chroma > 48) return fourColorPalette[2];
+    if (r > 145 && g > 120 && b < 105 && Math.abs(r - g) < 95) return fourColorPalette[3];
+  }
+
+  if (mode === 'blackWhiteColor') {
+    return luminance < 132 ? blackWhitePalette[0] : blackWhitePalette[1];
   }
 
   const inputLab = rgbToLab(r, g, b);
   let minDistance = Infinity;
-  let closestColor = palette[0];
+  let closestColor = getPalette(mode)[0];
 
-  for (const color of palette) {
-    const colorLab = rgbToLab(color.r, color.g, color.b);
-    const distance = labDistance(inputLab, colorLab);
+  for (const item of getPaletteLab(mode)) {
+    const distance = labDistance(inputLab, item.lab);
     if (distance < minDistance) {
       minDistance = distance;
-      closestColor = color;
+      closestColor = item.color;
     }
   }
 
   return closestColor;
+}
+
+function addError(tempData, idx, errR, errG, errB, weight) {
+  tempData[idx] = clampChannel(tempData[idx] + clampDitherError(errR * weight));
+  tempData[idx + 1] = clampChannel(tempData[idx + 1] + clampDitherError(errG * weight));
+  tempData[idx + 2] = clampChannel(tempData[idx + 2] + clampDitherError(errB * weight));
 }
 
 function floydSteinbergDither(imageData, strength, mode) {
@@ -124,7 +185,12 @@ function floydSteinbergDither(imageData, strength, mode) {
   const tempData = new Uint8ClampedArray(data);
 
   for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
+    const leftToRight = (y % 2) === 0;
+    const start = leftToRight ? 0 : width - 1;
+    const end = leftToRight ? width : -1;
+    const step = leftToRight ? 1 : -1;
+
+    for (let x = start; x !== end; x += step) {
       const idx = (y * width + x) * 4;
       const r = tempData[idx];
       const g = tempData[idx + 1];
@@ -132,48 +198,30 @@ function floydSteinbergDither(imageData, strength, mode) {
 
       const closest = findClosestColor(r, g, b, mode);
 
-      const errR = (r - closest.r) * strength;
-      const errG = (g - closest.g) * strength;
-      const errB = (b - closest.b) * strength;
+      const errR = clampDitherError((r - closest.r) * strength);
+      const errG = clampDitherError((g - closest.g) * strength);
+      const errB = clampDitherError((b - closest.b) * strength);
 
-      if (x + 1 < width) {
-        const idxRight = idx + 4;
-        tempData[idxRight] = Math.min(255, Math.max(0, tempData[idxRight] + errR * 7 / 16));
-        tempData[idxRight + 1] = Math.min(255, Math.max(0, tempData[idxRight + 1] + errG * 7 / 16));
-        tempData[idxRight + 2] = Math.min(255, Math.max(0, tempData[idxRight + 2] + errB * 7 / 16));
-      }
-      if (y + 1 < height) {
-        if (x > 0) {
-          const idxDownLeft = idx + width * 4 - 4;
-          tempData[idxDownLeft] = Math.min(255, Math.max(0, tempData[idxDownLeft] + errR * 3 / 16));
-          tempData[idxDownLeft + 1] = Math.min(255, Math.max(0, tempData[idxDownLeft + 1] + errG * 3 / 16));
-          tempData[idxDownLeft + 2] = Math.min(255, Math.max(0, tempData[idxDownLeft + 2] + errB * 3 / 16));
-        }
-        const idxDown = idx + width * 4;
-        tempData[idxDown] = Math.min(255, Math.max(0, tempData[idxDown] + errR * 5 / 16));
-        tempData[idxDown + 1] = Math.min(255, Math.max(0, tempData[idxDown + 1] + errG * 5 / 16));
-        tempData[idxDown + 2] = Math.min(255, Math.max(0, tempData[idxDown + 2] + errB * 5 / 16));
-        if (x + 1 < width) {
-          const idxDownRight = idx + width * 4 + 4;
-          tempData[idxDownRight] = Math.min(255, Math.max(0, tempData[idxDownRight] + errR * 1 / 16));
-          tempData[idxDownRight + 1] = Math.min(255, Math.max(0, tempData[idxDownRight + 1] + errG * 1 / 16));
-          tempData[idxDownRight + 2] = Math.min(255, Math.max(0, tempData[idxDownRight + 2] + errB * 1 / 16));
-        }
-      }
-    }
-  }
-
-  for (let y = 0; y < height; y++) {
-    for (let x = 0; x < width; x++) {
-      const idx = (y * width + x) * 4;
-      const r = tempData[idx];
-      const g = tempData[idx + 1];
-      const b = tempData[idx + 2];
-
-      const closest = findClosestColor(r, g, b, mode);
       data[idx] = closest.r;
       data[idx + 1] = closest.g;
       data[idx + 2] = closest.b;
+
+      const nextX = x + step;
+      if (nextX >= 0 && nextX < width) {
+        addError(tempData, idx + step * 4, errR, errG, errB, 7 / 16);
+      }
+      if (y + 1 < height) {
+        const idxDown = idx + width * 4;
+        const downPrevX = x - step;
+        if (downPrevX >= 0 && downPrevX < width) {
+          addError(tempData, idxDown - step * 4, errR, errG, errB, 3 / 16);
+        }
+        addError(tempData, idxDown, errR, errG, errB, 5 / 16);
+        const downNextX = x + step;
+        if (downNextX >= 0 && downNextX < width) {
+          addError(tempData, idxDown + step * 4, errR, errG, errB, 1 / 16);
+        }
+      }
     }
   }
 
@@ -199,9 +247,9 @@ function atkinsonDither(imageData, strength, mode) {
       data[idx + 1] = closest.g;
       data[idx + 2] = closest.b;
 
-      const errR = (r - closest.r) * strength;
-      const errG = (g - closest.g) * strength;
-      const errB = (b - closest.b) * strength;
+      const errR = clampDitherError((r - closest.r) * strength);
+      const errG = clampDitherError((g - closest.g) * strength);
+      const errB = clampDitherError((b - closest.b) * strength);
 
       const fraction = 1 / 8;
 
@@ -263,9 +311,9 @@ function stuckiDither(imageData, strength, mode) {
 
       const closest = findClosestColor(r, g, b, mode);
 
-      const errR = (r - closest.r) * strength;
-      const errG = (g - closest.g) * strength;
-      const errB = (b - closest.b) * strength;
+      const errR = clampDitherError((r - closest.r) * strength);
+      const errG = clampDitherError((g - closest.g) * strength);
+      const errB = clampDitherError((b - closest.b) * strength);
 
       const divisor = 42;
 
@@ -380,9 +428,9 @@ function jarvisDither(imageData, strength, mode) {
       data[idx + 1] = closest.g;
       data[idx + 2] = closest.b;
 
-      const errR = (r - closest.r) * strength;
-      const errG = (g - closest.g) * strength;
-      const errB = (b - closest.b) * strength;
+      const errR = clampDitherError((r - closest.r) * strength);
+      const errG = clampDitherError((g - closest.g) * strength);
+      const errB = clampDitherError((b - closest.b) * strength);
 
       const divisor = 48;
 
@@ -496,10 +544,10 @@ function bayerDither(imageData, strength, mode) {
       const matrixY = y % matrixSize;
       const threshold = (bayerMatrix[matrixY][matrixX] / maxThreshold) * 255;
 
-      // Apply dithering with strength factor
-      const adjustedR = r + (threshold - 127.5) * strength;
-      const adjustedG = g + (threshold - 127.5) * strength;
-      const adjustedB = b + (threshold - 127.5) * strength;
+      const thresholdOffset = clampDitherError((threshold - 127.5) * strength);
+      const adjustedR = r + thresholdOffset;
+      const adjustedG = g + thresholdOffset;
+      const adjustedB = b + thresholdOffset;
 
       // Clamp values
       const clampedR = Math.min(255, Math.max(0, adjustedR));
@@ -519,17 +567,18 @@ function bayerDither(imageData, strength, mode) {
 }
 
 function ditherImage(imageData, alg, strength, mode) {
+  const safeStrength = normalizeDitherStrength(strength);
   switch (alg) {
     case 'floydSteinberg':
-      return floydSteinbergDither(imageData, strength, mode);
+      return floydSteinbergDither(imageData, safeStrength, mode);
     case 'atkinson':
-      return atkinsonDither(imageData, strength, mode);
+      return atkinsonDither(imageData, safeStrength, mode);
     case 'stucki':
-      return stuckiDither(imageData, strength, mode);
+      return stuckiDither(imageData, safeStrength, mode);
     case 'jarvis':
-      return jarvisDither(imageData, strength, mode);
+      return jarvisDither(imageData, safeStrength, mode);
     case 'bayer':
-      return bayerDither(imageData, strength, mode);
+      return bayerDither(imageData, safeStrength, mode);
     case 'none':
     default:
       return imageData;
@@ -656,7 +705,6 @@ function processImageData(imageData, mode) {
   } else if (mode === 'blackWhiteColor') {
     const byteWidth = Math.ceil(width / 8);
     processedData = new Uint8Array(byteWidth * height);
-    const threshold = 140;
 
     for (let y = 0; y < height; y++) {
       for (let x = 0; x < width; x++) {
@@ -664,8 +712,8 @@ function processImageData(imageData, mode) {
         const r = data[index];
         const g = data[index + 1];
         const b = data[index + 2];
-        const grayscale = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
-        const bit = grayscale >= threshold ? 1 : 0;
+        const closest = findClosestColor(r, g, b, mode);
+        const bit = closest.value;
         const byteIndex = y * byteWidth + Math.floor(x / 8);
         const bitIndex = 7 - (x % 8);
         processedData[byteIndex] |= (bit << bitIndex);
@@ -673,8 +721,6 @@ function processImageData(imageData, mode) {
     }
   } else if (mode === 'threeColor') {
     const byteWidth = Math.ceil(width / 8);
-    const blackWhiteThreshold = 140;
-    const redThreshold = 160;
 
     const blackWhiteData = new Uint8Array(height * byteWidth);
     const redWhiteData = new Uint8Array(height * byteWidth);
@@ -685,9 +731,9 @@ function processImageData(imageData, mode) {
         const r = data[index];
         const g = data[index + 1];
         const b = data[index + 2];
-        const grayscale = Math.round(0.299 * r + 0.587 * g + 0.114 * b);
+        const closest = findClosestColor(r, g, b, mode);
 
-        const blackWhiteBit = grayscale >= blackWhiteThreshold ? 1 : 0;
+        const blackWhiteBit = closest.value === 0x00 ? 0 : 1;
         const blackWhiteByteIndex = y * byteWidth + Math.floor(x / 8);
         const blackWhiteBitIndex = 7 - (x % 8);
         if (blackWhiteBit) {
@@ -696,7 +742,7 @@ function processImageData(imageData, mode) {
           blackWhiteData[blackWhiteByteIndex] &= ~(0x01 << blackWhiteBitIndex);
         }
 
-        const redWhiteBit = (r > redThreshold && r > g && r > b) ? 0 : 1;
+        const redWhiteBit = closest.value === 0x02 ? 0 : 1;
         const redWhiteByteIndex = y * byteWidth + Math.floor(x / 8);
         const redWhiteBitIndex = 7 - (x % 8);
         if (redWhiteBit) {
