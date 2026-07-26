@@ -171,7 +171,7 @@ button {
     min-height: 34px;
     padding: 8px 16px;
     border: 1px solid transparent;
-    border-radius: 9999px;
+    border-radius: 8px;;
     margin: 0;
     white-space: nowrap;
     cursor: pointer;
@@ -264,7 +264,7 @@ select {
     max-width: 100%;
     padding: 9px 16px;
     border: 1px solid rgba(0, 0, 0, 0.08);
-    border-radius: 9999px;
+    border-radius: 8px;;
     color: var(--ink);
     background-color: var(--surface-pearl);
     font: inherit;
@@ -306,7 +306,7 @@ input::file-selector-button {
     padding: 8px 16px;
     margin-right: 10px;
     border: 1px solid var(--primary-color);
-    border-radius: 9999px;
+    border-radius: 8px;;
     cursor: pointer;
     color: #fff;
     background-color: var(--primary-color);
@@ -648,7 +648,7 @@ label {
     left: 12px;
     bottom: 10px;
     padding: 4px 8px;
-    border-radius: 9999px;
+    border-radius: 8px;;
     color: rgba(29, 29, 31, 0.72);
     background: rgba(255, 255, 255, 0.72);
     font-size: 12px;
@@ -666,7 +666,7 @@ label {
     height: 32px;
     min-height: 32px;
     padding: 6px 12px;
-    border-radius: 9999px;
+    border-radius: 8px;;
     font-size: 12px;
     line-height: 1;
     white-space: nowrap;
@@ -757,7 +757,7 @@ input[type=range] {
 input[type=range]::-webkit-slider-runnable-track {
     height: 6px;
     border: 0;
-    border-radius: 9999px;
+    border-radius: 8px;;
     background:
         linear-gradient(90deg, var(--primary-color), var(--primary-color)) 0 / var(--range-fill, 50%) 100% no-repeat,
         rgba(0, 0, 0, 0.12);
@@ -785,13 +785,13 @@ input[type=range]:hover::-webkit-slider-thumb {
 input[type=range]::-moz-range-track {
     height: 6px;
     border: 0;
-    border-radius: 9999px;
+    border-radius: 8px;;
     background: rgba(0, 0, 0, 0.12);
 }
 
 input[type=range]::-moz-range-progress {
     height: 6px;
-    border-radius: 9999px;
+    border-radius: 8px;;
     background: var(--primary-color);
 }
 
@@ -1336,7 +1336,7 @@ body.dark-mode .slot-read-status {
     height: 44px;
     padding: 0;
     border: 1px solid var(--divider-soft);
-    border-radius: 9999px;
+    border-radius: 8px;;
     background: var(--surface-pearl);
     color: var(--ink);
     cursor: pointer;
@@ -1840,5 +1840,7 @@ body.dark-mode.custom-background::after {
 }
 
 
-
+.main > h3 {
+    display: none !important;
+}
 
