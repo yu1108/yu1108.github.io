@@ -21,7 +21,7 @@
 	</nav>
 	<div class="sub-nav-frosted">
 		<div class="sub-nav-inner">
-			<span id="driverMeta" class="sub-nav-meta">10.2_960_640 10.2寸HD (三色, SSD1677) · Web Bluetooth</span>
+			<span id="driverMeta" class="sub-nav-meta">4.2_400_300">4.2寸 (黑白, UC8176) · Web Bluetooth</span>
 		</div>
 	</div>
 	<div class="main">
@@ -52,7 +52,7 @@
 						<option value="12" data-color="threeColor" data-size="3.7_416_240">3.7BWR(三色，LG 3.7寸）</option>
 						<option value="10" data-color="fourColor" data-size="3.98_768_552">3.98寸（四色，SE0398NZ07A0）</option>
 						<option value="11" data-color="fourColor" data-size="3.98_768_552">3.98寸（四色，SE0398NZ07A1）</option>
-						<option value="13" data-color="fourColor" data-size="3.98_768_552" selected>3.98寸（四色，SE0398NZ07-New-A1）</option>
+						<option value="13" data-color="fourColor" data-size="3.98_768_552" >3.98寸（四色，SE0398NZ07-New-A1）</option>
 						<option value="14" data-color="fourColor" data-size="3.87_800_480">3.87寸（四色，KEGM038701E01-J665）</option>
 						<option value="15" data-color="fourColor" data-size="9.7_960_680">9.7寸（四色，GDEY133F91）</option>
 						<option value="06" data-color="blackWhiteColor" data-size="7.5_800_480">7.5寸 (黑白, UC8179)</option>
@@ -62,7 +62,9 @@
 						<option value="09" data-color="threeColor" data-size="7.5_640_384">7.5寸低分 (三色, UC8159)</option>
 						<option value="0a" data-color="blackWhiteColor" data-size="7.5_880_528">7.5寸HD (黑白, SSD1677)</option>
 						<option value="0b" data-color="threeColor" data-size="7.5_880_528">7.5寸HD (三色, SSD1677)</option>
-                                                 <option value="17" data-color="threeColor" data-size="10.2_960_640">10.2寸HD (三色, SSD1677)</option>
+						<option value="17" data-color="threeColor" data-size="10.2_960_640">10.2寸HD (三色, SSD1677)</option>
+						<!-- 新增E6 760×568 六色屏 value=17(hex) = 23(decimal) -->
+						<option value="18" data-color="sixColor" data-size="7.3E6_760_568">7.3E6 (六色, E6‑760×568)</option>
 					</select>
 				</div>
 			</div>
@@ -152,7 +154,9 @@
 						<option value="10.85_1360_480">10.85 (1360x480)</option>
 						<option value="11.6_960_640">11.6 (960x640)</option>
 						<option value="4E_600_400">4E (600x400)</option>
-						<option value="7.3E6">7.3E6 (480x800)</option>
+						<option value="7.3E6_480_800">7.3E6 (480x800)</option>
+						<!-- 新增E6画布尺寸 -->
+						<option value="7.3E6_760_568">7.3E6 (760x568)</option>
 					</select>
 				</div>
 				<div class="flex-group debug">
@@ -167,11 +171,11 @@
 				<div class="flex-group">
 					<label for="ditherAlg">抖动算法:</label>
 					<select id="ditherAlg" onchange="applyDither()">
-						<option value="floydSteinberg">Floyd-Steinberg</option>
+						<option value="floydSteinberg">Floyd‑Steinberg</option>
 						<option value="atkinson">Atkinson</option>
 						<option value="bayer">Bayer</option>
 						<option value="stucki">Stucki</option>
-						<option value="jarvis">Jarvis-Judice-Ninke</option>
+						<option value="jarvis">Jarvis‑Judice‑Ninke</option>
 						<option value="none">无抖动</option>
 					</select>
 					<button id="resetDitherAdjustments" type="button" class="secondary">还原默认</button>
@@ -256,7 +260,7 @@
 						<label for="font-family">字体:</label>
 						<select id="font-family">
 							<option value="Arial">Arial</option>
-							<option value="sans-serif">Sans-serif</option>
+							<option value="sans-serif">Sans‑serif</option>
 							<option value="monospace">Monospace</option>
 							<option value="SimSun">宋体</option>
 							<option value="SimHei">黑体</option>
@@ -283,7 +287,6 @@
 							<option value="Source Han Sans CN">思源黑体</option>
 							<option value="Source Han Serif SC">思源宋体</option>
 							<option value="WenQuanYi Micro Hei">文泉驿微米黑</option>
-							</optgroup>
 						</select>
 						<span class="text-size-controls">
 							<label for="font-size">大小:</label>
@@ -419,7 +422,7 @@
 				<a href="https://qm.qq.com/q/SckzhfDxuu" onclick="return confirm('本群是此开源固件作者的技术交流群\n如果你购买了成品，请找卖家提供售后！')">交流群</a>
 				<a href="?debug=true" id="debug-toggle">开发模式</a>
 			</span>
-			<span class="copy">&copy;Source from tsl0922, 更新时间: 2026-07-26</span>
+			<span class="copy">&copy;Source from tsl0922, 更新时间: 2026‑07‑26</span>
 		</div>
 	</div>
 	<div id="backgroundSettingsModal" class="modal-overlay" hidden>
@@ -485,11 +488,3 @@
 </body>
 
 </html>
-
-
-
-
-
-
-
-
