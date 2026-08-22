@@ -94,7 +94,7 @@ const canvasSizes = [
   { name: '2.66_296_152', width: 296, height: 152 },
   { name: '2.9_296_128', width: 296, height: 128 },
   { name: '2.9_384_168', width: 384, height: 168 },
-  { name: '3.5_384_184', width: 384, height: 184 },
+  { name: '3.5_360_240', width: 360, height: 240 },
   { name: '3.7_416_240', width: 416, height: 240 },
   { name: '3.97_800_480', width: 800, height: 480 },
   { name: '3.98_768_552', width: 768, height: 552 },
@@ -1000,8 +1000,9 @@ function restoreRotated2bpp(data, width, height) {
 
 function normalizeSlotImageData(meta) {
   const driverSelect = document.getElementById('epddriver');
-  const needsNativeRotation = meta.width === 416 && meta.height === 240 &&
-    (isGDEM037F51Driver(driverSelect) || isGDEY037Z03Driver(driverSelect));
+  const needsNativeRotation = 
+    ((meta.width === 416 && meta.height === 240) && isGDEM037F51Driver(driverSelect)) ||
+    ((meta.width === 360 && meta.height === 240) && isSE0352Driver(driverSelect));
   if (!needsNativeRotation) return meta.data;
 
   if (meta.colorId === 2) return restoreRotated2bpp(meta.data, meta.width, meta.height);
@@ -1243,13 +1244,13 @@ function isGDEM037F51Driver(selectElement) {
   return value === '0d' || size === '3.7_416_240' && label.includes('GDEM037F51');
 }
 
-function isGDEY037Z03Driver(selectElement) {
+function isSE0352Driver(selectElement) {
   const option = selectElement.options[selectElement.selectedIndex];
   const value = (selectElement.value || '').toLowerCase();
   const size = option ? option.getAttribute('data-size') : '';
   const label = option ? option.textContent : '';
   return value === '0e' || value === '0f' || value === '12' ||
-    size === '3.7_416_240' && (label.includes('GDEY037Z03') || label.includes('YS4370JS0C3') || label.includes('LG 3.7'));
+    size === '3.5_360_240' && (label.includes('SE0352') || label.includes('YS4370JS0C3') || label.includes('LG 3.7'));
 }
 
 function get1bppPixel(data, width, x, y) {
@@ -1267,9 +1268,9 @@ function set1bppPixel(data, width, x, y, value) {
   else data[byteIndex] &= ~mask;
 }
 
-function convertGDEY037Z03Plane(data, srcWidth = canvas.width, srcHeight = canvas.height) {
+function convertSE0352Plane(data, srcWidth = canvas.width, srcHeight = canvas.height) {
   const nativeWidth = 240;
-  const nativeHeight = 416;
+  const nativeHeight = 360;
 
   if (srcWidth === nativeWidth && srcHeight === nativeHeight) {
     return new Uint8Array(data);
@@ -1383,9 +1384,9 @@ async function sendimg(options = {}) {
     const halfLength = Math.floor(processedData.length / 2);
     let blackWhiteData = processedData.slice(0, halfLength);
     let redWhiteData = processedData.slice(halfLength);
-    if (isGDEY037Z03Driver(epdDriverSelect)) {
-      blackWhiteData = convertGDEY037Z03Plane(blackWhiteData, canvas.width, canvas.height);
-      redWhiteData = convertGDEY037Z03Plane(redWhiteData, canvas.width, canvas.height);
+    if (isSE0352Driver(epdDriverSelect)) {
+      blackWhiteData = convertSE0352Plane(blackWhiteData, canvas.width, canvas.height);
+      redWhiteData = convertSE0352Plane(redWhiteData, canvas.width, canvas.height);
       addLog('3.7BWR 图像数据已按原生 240x416 重排');
     }
     if (epdDriverSelect.value === '08' || epdDriverSelect.value === '09') {
