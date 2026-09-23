@@ -401,31 +401,23 @@ async function preConnect() {
     resetVariables();
     try {
       bleDevice = await navigator.bluetooth.requestDevice({
-        filters: [
-          {
-            namePrefix: 'GCLab_EPD',
-            services: [UUID_NEW_SERVICE]
-          },
-          {
-            namePrefix: 'GCLab_EPD',
-            services: [UUID_LEG_SERVICE]
-          }
-        ],
-        optionalServices: [UUID_NEW_SERVICE, UUID_LEG_SERVICE]
+        optionalServices: [UUID_NEW_SERVICE, UUID_LEG_SERVICE],
+        acceptAllDevices: true
       });
     } catch (e) {
       console.error(e);
       if (e.message) addLog("requestDevice: " + e.message);
-      addLog("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！");
-      addLog("⚠️ iOS必须使用Bluefy浏览器打开页面，微信内置浏览器不支持WebBluetooth！");
+      addLog("请检查蓝牙是否已开启，且使用的浏览器支持蓝牙！建议使用以下浏览器：");
+      addLog("• 电脑: Chrome/Edge");
+      addLog("• Android: Chrome/Edge");
+      addLog("• iOS: Bluefy 浏览器");
       return;
     }
+
     await bleDevice.addEventListener('gattserverdisconnected', disconnect);
     setTimeout(async function () { await connect(); }, 300);
   }
 }
-
-
 
 async function reConnect() {
   if (bleDevice != null && bleDevice.gatt.connected)
